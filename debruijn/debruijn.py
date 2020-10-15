@@ -17,7 +17,6 @@ import argparse
 import os
 import sys
 import networkx as nx
-import matplotlib
 from operator import itemgetter
 import random
 random.seed(9001)
@@ -68,12 +67,37 @@ def get_arguments():
 #==============================================================
 # Main program
 #==============================================================
+def read_fastq(fastq):
+    print("TEST")
+    with open(fastq, 'r') as f:
+        for l in f:
+            yield(next(f).strip())
+            next(f)
+            next(f)
+
+def cut_kmer(seq, ksize):
+    for i in range(len(seq)-ksize):
+        yield(seq[i:i+ksize])
+
+def build_kmer_dict(fastq,ksize):
+    occu = {}
+    for seq in read_fastq(fastq):
+        for kmer in cut_kmer(seq,ksize):
+            if kmer not in occu:
+                occu[kmer] = 0    
+            occu[kmer] += 1
+    return(occu)        
+
+
+
 def main():
     """
     Main program function
     """
     # Get arguments
     args = get_arguments()
+    d = build_kmer_dict(args.fastq_file, args.kmer_size)
+    print(d)
 
 if __name__ == '__main__':
     main()
