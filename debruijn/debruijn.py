@@ -136,6 +136,20 @@ def fill(text, width=80):
     """Split text with a line return to respect fasta format"""
     return os.linesep.join(text[i:i+width] for i in range(0, len(text), width))
 
+def std(liste):
+    return(statistics.stdev(liste))
+
+def path_average_weight(g,path):
+    w = 0
+    for i in range(len(path)-1):
+        w += g[path[i]][path[i+1]]["weight"]
+    return(w/(i+1))
+
+def remove_paths(g,lpath,delete_entry_node,delete_sink_node):
+    if not delete_entry_node:
+        #efface tout les noeuds sauf dernier
+    if not delete_sink_node:
+        #efface tout les noeuds sauf dernier    
 
 def visuGraph(g):
     nx.draw(g,with_labels = True, font_weight='bold')
@@ -153,7 +167,8 @@ def main():
     st_nod = get_starting_nodes(g)
     sk_nod = get_sink_nodes(g)
     contigs = get_contigs(g,st_nod,sk_nod)
-    save_contigs(contigs,args.output_file)
+    # save_contigs(contigs,args.output_file)
+    # path_average_weight(g)
 
 if __name__ == '__main__':
     main()
