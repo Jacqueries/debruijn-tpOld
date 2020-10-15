@@ -22,6 +22,7 @@ import random
 random.seed(9001)
 from random import randint
 import statistics
+import matplotlib.pyplot as plt
 
 __author__ = "Your Name"
 __copyright__ = "Universite Paris Diderot"
@@ -68,7 +69,6 @@ def get_arguments():
 # Main program
 #==============================================================
 def read_fastq(fastq):
-    print("TEST")
     with open(fastq, 'r') as f:
         for l in f:
             yield(next(f).strip())
@@ -86,9 +86,60 @@ def build_kmer_dict(fastq,ksize):
             if kmer not in occu:
                 occu[kmer] = 0    
             occu[kmer] += 1
-    return(occu)        
+    return(occu)
+
+def build_graph(d_Kmer):
+    lk = list(d_Kmer.keys())
+    n = len(lk[0])
+    G = nx.DiGraph()
+    for k1 in lk:
+        G.add_node(k1[0:n-1])
+        G.add_node(k1[1:n])
+        G.add_edge(k1[0:n-1],k1[1:n])
+        G[k1[0:n-1]][k1[1:n]]['weight'] = d_Kmer[k1]                         
+    return(G)
+
+def get_starting_nodes(g):
+    start_nodes = []
+    for node in g.nodes():
+        if not bool(g.pred[node]):
+            start_nodes.append(node)
+    return start_nodes
+
+def get_sink_nodes(g):
+    end_nodes = []
+    for node in g.nodes():
+        if not bool(g.succ[node]):
+            end_nodes.append(node)
+    return end_nodes
+
+def get_contigs(g,snodes,fnodes):
+    contigs = []
+    for sn in snodes:
+        for fn in fnodes:
+            for path in nx.all_simple_paths(g,sn,fn):
+                contig = []
+                contig.append(path[0][0:-1]) #départ du path jusqu'a dernière lettre
+                for neud in path:
+                    contig.append(neud[-1])
+                contig = ''.join(contig)
+                taille = len(contig)
+                contigs.append((contig,taille))
+    return contigs
+
+def save_contigs(contigs,filename):
+    with open(filename, 'w') as o:
+        for i,ele in enumerate(contigs):
+            o.write(">contig_{} len={}\n{}\n".format(i,ele[1],fill(ele[0])))
+
+def fill(text, width=80):
+    """Split text with a line return to respect fasta format"""
+    return os.linesep.join(text[i:i+width] for i in range(0, len(text), width))
 
 
+def visuGraph(g):
+    nx.draw(g,with_labels = True, font_weight='bold')
+    plt.show()
 
 def main():
     """
@@ -97,7 +148,12 @@ def main():
     # Get arguments
     args = get_arguments()
     d = build_kmer_dict(args.fastq_file, args.kmer_size)
-    print(d)
+    g = build_graph(d)
+    # visuGraph(g)
+    st_nod = get_starting_nodes(g)
+    sk_nod = get_sink_nodes(g)
+    contigs = get_contigs(g,st_nod,sk_nod)
+    save_contigs(contigs,args.output_file)
 
 if __name__ == '__main__':
     main()
