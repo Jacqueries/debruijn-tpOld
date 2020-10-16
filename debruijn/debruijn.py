@@ -76,8 +76,9 @@ def read_fastq(fastq):
             next(f)
 
 def cut_kmer(seq, ksize):
-    for i in range(len(seq)-ksize):
-        yield(seq[i:i+ksize])
+	for i in range(len(seq)):
+		if (i + ksize) <= len(seq):
+			yield(seq[i:i+ksize])
 
 def build_kmer_dict(fastq,ksize):
     occu = {}
@@ -89,15 +90,16 @@ def build_kmer_dict(fastq,ksize):
     return(occu)
 
 def build_graph(d_Kmer):
-    lk = list(d_Kmer.keys())
-    n = len(lk[0])
-    G = nx.DiGraph()
-    for k1 in lk:
-        G.add_node(k1[0:n-1])
-        G.add_node(k1[1:n])
-        G.add_edge(k1[0:n-1],k1[1:n])
-        G[k1[0:n-1]][k1[1:n]]['weight'] = d_Kmer[k1]                         
-    return(G)
+	G = nx.DiGraph()
+	for k in list(d_Kmer.keys()):
+		n = len(k)
+		k1 = k[:n-1]
+		k2 = k[1:n]
+		G.add_node(k1)
+		G.add_node(k2)
+		G.add_edge(k1,k2)
+		G[k1][k2]['weight'] = d_Kmer[k]
+	return(G)
 
 def get_starting_nodes(g):
     start_nodes = []
@@ -128,9 +130,9 @@ def get_contigs(g,snodes,fnodes):
     return contigs
 
 def save_contigs(contigs,filename):
-    with open(filename, 'w') as o:
-        for i,ele in enumerate(contigs):
-            o.write(">contig_{} len={}\n{}\n".format(i,ele[1],fill(ele[0])))
+	with open(filename, 'w') as o:
+		for i,ele in enumerate(contigs):
+			o.write(">contig_{} len={}\n{}\n".format(i,ele[1],fill(ele[0])))
 
 def fill(text, width=80):
     """Split text with a line return to respect fasta format"""
@@ -146,10 +148,49 @@ def path_average_weight(g,path):
     return(w/(i+1))
 
 def remove_paths(g,lpath,delete_entry_node,delete_sink_node):
-    if not delete_entry_node:
-        #efface tout les noeuds sauf dernier
-    if not delete_sink_node:
-        #efface tout les noeuds sauf dernier    
+    for path in lpath:
+    	for i,neud in enumerate(path):
+    		if (i!=0) and (i!=(len(path)-1)):
+    			g.remove_node(neud)
+    	if delete_entry_node:
+    		g.remove_node(path[0])
+    	if delete_sink_node:
+    		g.remove_node(path[len(path)-1])
+    return g		
+
+def select_best_path(g,lpath,llenpath,lmeanwei,delete_entry_node=False,delete_sink_node=False):
+	cutpath = []
+	for pi in range(len(lpath)):
+		for pj in range((pi+1),len(lpath)):
+			stdl = std([llenpath[pi],llenpath[pj]]) 
+			stdw = std([lmeanwei[pi],lmeanwei[pj]])
+			if stdl == 0 and stdw == 0:
+				rd = random.choice([pi,pj])
+				cutpath.append(lpath[rd])
+			elif stdl != 0 and stdw == 0:
+				if llenpath[pi] > llenpath[pj]:
+					cutpath.append(lpath[pj])
+				else :
+					cutpath.append(lpath[pi])	
+			else:
+				if lmeanwei[pi] > lmeanwei[pj]:
+					cutpath.append(lpath[pj])
+				else :
+					cutpath.append(lpath[pi])				
+	remove_paths(g,cutpath,delete_entry_node,delete_sink_node)
+	return g
+
+def solve_bubble():
+	pass
+
+def simplify_bubbles():
+	pass
+
+def solve_entry_tips():
+	pass
+	
+def solve_out_tips():
+	pass
 
 def visuGraph(g):
     nx.draw(g,with_labels = True, font_weight='bold')
